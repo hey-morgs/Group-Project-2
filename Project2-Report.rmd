@@ -4,6 +4,20 @@ author: "Morgan Henderson, Preena Maruthavelu"
 date: "`r Sys.Date()`"
 output: html_document
 ---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+packages <- c("knitr", "tidyr", "dplyr", "ggplot2", "ggthemes", "stringr")
+install_me <- packages[!(packages %in% installed.packages()[, "Package"])]
+if (length(install_me)) install.packages(install_me)
+library(knitr)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggthemes)
+library(stringr)
+```
+
+
 # Group Project 2
 ## Repo Link:
 https://github.com/hey-morgs/Group-Project-2.git
@@ -91,33 +105,28 @@ addLayersControl(
 
 map
 ```
+
+=======
+
+```{r ob2 - Preena}
+top_cases <- global_cases_df %>%
+  group_by(Country.Region) %>% 
+  summarize(Cases=sum(X3.9.23)) %>% 
+  arrange(desc(Cases))
+
+top_cases <- top_cases %>% mutate(Rank = 1:nrow(top_cases)) %>% select(Rank, everything())
+
+top_deaths <- global_deaths_df %>%
+  group_by(Country.Region) %>% 
+  summarize(Deaths=sum(X3.9.23)) %>% 
+  arrange(desc(Deaths))
+
+top_deaths <- top_deaths %>% mutate(Rank = 1:nrow(top_deaths)) %>% select(Rank, everything())
+
+consolidated <- full_join(top_cases, top_deaths, by ='Rank')
+
+kable(consolidated)
+  
 ```
-#head(global_cases_df)
-# Select the relevant columns for country/province, latitude, longitude, and the last date column
-cases_cols <- c("Province.State", "Country.Region", "Lat", "Long", "X3.9.23")
-deaths_cols <- c("Province.State", "Country.Region", "Lat", "Long", "X3.9.23")
 
-# Combine the cases and deaths data frames
-combined_data <- full_join(
-  select(global_cases_df, cases_cols),
-  select(global_deaths_df, deaths_cols),
-  by = c("Province.State", "Country.Region", "Lat", "Long")
-) 
-
-# Sum confirmed cases and deaths by country
-combined_sums <- combined_data %>%
-  group_by(Country.Region) %>%
-  summarise(ConfirmedCases = sum(X3.9.23.x, na.rm = TRUE),
-            Deaths = sum(X3.9.23.y, na.rm = TRUE))
-
-# Mean latitude and longitude for each country
-mean_lat_long_df <- combined_data %>%
-  group_by(Country.Region) %>%
-  summarise(MeanLat = mean(Lat, na.rm = TRUE),
-            MeanLong = mean(Long, na.rm = TRUE))
-
-# Merge the two dataframes together to get one row per country
-mean_sum_df <- merge(combined_sums, mean_lat_long_df, by = "Country.Region")
-
-print(mean_sum_df)
-```
+>>>>>>> 37d443871ba3680f0f605af24a093371498a4094
