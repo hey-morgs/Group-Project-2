@@ -4,6 +4,20 @@ author: "Morgan Henderson, Preena Maruthavelu"
 date: "`r Sys.Date()`"
 output: html_document
 ---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+packages <- c("knitr", "tidyr", "dplyr", "ggplot2", "ggthemes", "stringr")
+install_me <- packages[!(packages %in% installed.packages()[, "Package"])]
+if (length(install_me)) install.packages(install_me)
+library(knitr)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggthemes)
+library(stringr)
+```
+
+
 # Group Project 2
 ## Repo Link:
 https://github.com/hey-morgs/Group-Project-2.git
@@ -31,3 +45,25 @@ us_deaths_df <- read.csv(us_deaths, header = TRUE, na.strings = c("", " "))
 
 
 ```
+
+```{r ob2 - Preena}
+top_cases <- global_cases_df %>%
+  group_by(Country.Region) %>% 
+  summarize(Cases=sum(X3.9.23)) %>% 
+  arrange(desc(Cases))
+
+top_cases <- top_cases %>% mutate(Rank = 1:nrow(top_cases)) %>% select(Rank, everything())
+
+top_deaths <- global_deaths_df %>%
+  group_by(Country.Region) %>% 
+  summarize(Deaths=sum(X3.9.23)) %>% 
+  arrange(desc(Deaths))
+
+top_deaths <- top_deaths %>% mutate(Rank = 1:nrow(top_deaths)) %>% select(Rank, everything())
+
+consolidated <- full_join(top_cases, top_deaths, by ='Rank')
+
+kable(consolidated)
+  
+```
+
