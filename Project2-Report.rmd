@@ -129,3 +129,52 @@ kable(consolidated)
   
 ```
 
+### Objective 3
+```{r ob3 - Morgan}
+# Load necessary libraries
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Filter California cases and remove unwanted columns
+df_ca <- us_cases_df %>%
+  filter(Province_State == "California") %>%
+  select(-UID, -iso2, -iso3, -code3, -FIPS, -Admin2, -Country_Region, -Lat, -Long_, -Combined_Key)
+
+# Transform the data from wide to long format
+df_ca_long <- df_ca %>%
+  pivot_longer(cols = starts_with("X"), names_to = "Date", values_to = "Cases")
+
+# Convert the date to Date class and sum the cases
+df_ca_sum <- df_ca_long %>%
+  mutate(Date = as.Date(gsub("X", "", Date), format = "%m.%d.%y")) %>%
+  group_by(Date) %>%
+  summarise(Cases = sum(Cases, na.rm = TRUE))
+
+# Define dates of interest
+start_date <- as.Date("2020-03-19")
+vaccine_date <- as.Date("2021-01-29")
+delta_date <- as.Date("2021-07-04")
+omicron_date <- as.Date("2021-12-20")
+
+# Plot the data
+ggplot(df_ca_sum, aes(x = Date, y = Cases)) +
+  geom_line() +
+  geom_vline(xintercept = start_date, linetype = "dashed", color = "blue", size = 1) +
+  geom_vline(xintercept = vaccine_date, linetype = "dashed", color = "blue", size = 1) +
+  geom_vline(xintercept = delta_date, linetype = "dashed", color = "red", size = 1) +
+  geom_vline(xintercept = omicron_date, linetype = "dashed", color = "red", size = 1) +
+  geom_text(aes(x = start_date, y = 10000000, label = "SAH"), vjust = -0.5) +
+  geom_text(aes(x = vaccine_date, y = 10000000, label = "EUA"), vjust = -0.5) +
+  geom_text(aes(x = delta_date, y = 10000000, label = "Delta"), vjust = -0.5) +
+  geom_text(aes(x = omicron_date, y = 10000000, label = "Omicron"), vjust = -0.5) +
+  labs(x = "", y = "Confirmed Cases",
+       title = "COVID-19 Confirmed Cases in California"
+       ) +
+  scale_x_date(
+    breaks = c(start_date, vaccine_date, delta_date, omicron_date),
+    labels = c("2020-03-19", "2021-01-29", "2021-07-04", "2021-12-20")
+  )  
+
+```
+
