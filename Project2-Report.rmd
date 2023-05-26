@@ -29,5 +29,95 @@ global_deaths_df <- read.csv(global_deaths, header = TRUE, na.strings = c("", " 
 us_cases_df <- read.csv(us_cases, header = TRUE, na.strings = c("", " "))
 us_deaths_df <- read.csv(us_deaths, header = TRUE, na.strings = c("", " "))
 
+library("leaflet")
+library("dplyr")
 
+# Select the relevant columns for country/province, latitude, longitude, and the last date column
+cases_cols <- c("Province.State", "Country.Region", "Lat", "Long", "X3.9.23")
+deaths_cols <- c("Province.State", "Country.Region", "Lat", "Long", "X3.9.23")
+
+# Prepare the confirmed cases data frame
+cases_data <- global_cases_df %>%
+  select(cases_cols) %>%
+  group_by(Country.Region) %>%
+  summarise(ConfirmedCases = sum(X3.9.23, na.rm = TRUE),
+            MeanLat = mean(Lat, na.rm = TRUE),
+            MeanLong = mean(Long, na.rm = TRUE))
+
+# Prepare the deaths data frame
+deaths_data <- global_deaths_df %>%
+  select(deaths_cols) %>%
+  group_by(Country.Region) %>%
+  summarise(Deaths = sum(X3.9.23, na.rm = TRUE),
+            MeanLat = mean(Lat, na.rm = TRUE),
+            MeanLong = mean(Long, na.rm = TRUE))
+str(cases_data)
+str(deaths_data)
+#print (deaths_data)
+# Define color palette for cases
+casesColor <- colorFactor(
+  palette = c("blue", "purple", "red"),
+  domain = quantile(cases_data$ConfirmedCases, probs = c(0.33, 0.67), na.rm = TRUE)
+)
+# Define color for deaths
+deathsColor <- colorFactor(
+  palette = c("blue", "purple", "red"),
+  domain = quantile(deaths_data$Deaths, probs = c(0.33, 0.67), na.rm = TRUE)
+)
+
+map <- leaflet() %>%
+  addTiles() %>%
+  addCircleMarkers(data = cases_data, group = "Confirmed Cases",
+                   lat = ~ MeanLat,
+                   lng = ~ MeanLong,
+                   color = ~casesColor(ConfirmedCases), 
+                   label = ~sprintf('%s', Country.Region),
+                   popup = ~sprintf('Cases: %s', ConfirmedCases),
+                   radius = 6,
+                   stroke = FALSE
+                   ) %>%
+  addCircleMarkers(data = deaths_data, group = "Deaths",
+                   lat = ~ MeanLat,
+                   lng = ~ MeanLong,
+                   color = ~deathsColor(Deaths),
+                   label = ~sprintf('%s', Country.Region),
+                   popup = ~sprintf('Deaths: %s', Deaths),
+                   radius = 6,
+                   stroke = FALSE)%>%
+addLayersControl(
+  overlayGroups = c("Confirmed Cases", "Deaths"),
+  options = layersControlOptions(collapsed = FALSE)
+)
+
+map
+```
+```
+#head(global_cases_df)
+# Select the relevant columns for country/province, latitude, longitude, and the last date column
+cases_cols <- c("Province.State", "Country.Region", "Lat", "Long", "X3.9.23")
+deaths_cols <- c("Province.State", "Country.Region", "Lat", "Long", "X3.9.23")
+
+# Combine the cases and deaths data frames
+combined_data <- full_join(
+  select(global_cases_df, cases_cols),
+  select(global_deaths_df, deaths_cols),
+  by = c("Province.State", "Country.Region", "Lat", "Long")
+) 
+
+# Sum confirmed cases and deaths by country
+combined_sums <- combined_data %>%
+  group_by(Country.Region) %>%
+  summarise(ConfirmedCases = sum(X3.9.23.x, na.rm = TRUE),
+            Deaths = sum(X3.9.23.y, na.rm = TRUE))
+
+# Mean latitude and longitude for each country
+mean_lat_long_df <- combined_data %>%
+  group_by(Country.Region) %>%
+  summarise(MeanLat = mean(Lat, na.rm = TRUE),
+            MeanLong = mean(Long, na.rm = TRUE))
+
+# Merge the two dataframes together to get one row per country
+mean_sum_df <- merge(combined_sums, mean_lat_long_df, by = "Country.Region")
+
+print(mean_sum_df)
 ```
