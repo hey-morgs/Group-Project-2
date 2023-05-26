@@ -44,8 +44,70 @@ global_deaths_df <- read.csv(global_deaths, header = TRUE, na.strings = c("", " 
 us_cases_df <- read.csv(us_cases, header = TRUE, na.strings = c("", " "))
 us_deaths_df <- read.csv(us_deaths, header = TRUE, na.strings = c("", " "))
 
+library("leaflet")
+library("dplyr")
 
+# Select the relevant columns for country/province, latitude, longitude, and the last date column
+cases_cols <- c("Province.State", "Country.Region", "Lat", "Long", "X3.9.23")
+deaths_cols <- c("Province.State", "Country.Region", "Lat", "Long", "X3.9.23")
+
+# Prepare the confirmed cases data frame
+cases_data <- global_cases_df %>%
+  select(cases_cols) %>%
+  group_by(Country.Region) %>%
+  summarise(ConfirmedCases = sum(X3.9.23, na.rm = TRUE),
+            MeanLat = mean(Lat, na.rm = TRUE),
+            MeanLong = mean(Long, na.rm = TRUE))
+
+# Prepare the deaths data frame
+deaths_data <- global_deaths_df %>%
+  select(deaths_cols) %>%
+  group_by(Country.Region) %>%
+  summarise(Deaths = sum(X3.9.23, na.rm = TRUE),
+            MeanLat = mean(Lat, na.rm = TRUE),
+            MeanLong = mean(Long, na.rm = TRUE))
+str(cases_data)
+str(deaths_data)
+#print (deaths_data)
+# Define color palette for cases
+casesColor <- colorFactor(
+  palette = c("blue", "purple", "red"),
+  domain = quantile(cases_data$ConfirmedCases, probs = c(0.33, 0.67), na.rm = TRUE)
+)
+# Define color for deaths
+deathsColor <- colorFactor(
+  palette = c("blue", "purple", "red"),
+  domain = quantile(deaths_data$Deaths, probs = c(0.33, 0.67), na.rm = TRUE)
+)
+
+map <- leaflet() %>%
+  addTiles() %>%
+  addCircleMarkers(data = cases_data, group = "Confirmed Cases",
+                   lat = ~ MeanLat,
+                   lng = ~ MeanLong,
+                   color = ~casesColor(ConfirmedCases), 
+                   label = ~sprintf('%s', Country.Region),
+                   popup = ~sprintf('Cases: %s', ConfirmedCases),
+                   radius = 6,
+                   stroke = FALSE
+                   ) %>%
+  addCircleMarkers(data = deaths_data, group = "Deaths",
+                   lat = ~ MeanLat,
+                   lng = ~ MeanLong,
+                   color = ~deathsColor(Deaths),
+                   label = ~sprintf('%s', Country.Region),
+                   popup = ~sprintf('Deaths: %s', Deaths),
+                   radius = 6,
+                   stroke = FALSE)%>%
+addLayersControl(
+  overlayGroups = c("Confirmed Cases", "Deaths"),
+  options = layersControlOptions(collapsed = FALSE)
+)
+
+map
 ```
+
+=======
 
 ```{r ob2 - Preena}
 top_cases <- global_cases_df %>%
@@ -71,5 +133,113 @@ kable(consolidated) %>%
   kable_styling(fixed_thead = T, bootstrap_options = c("striped", "hover", "condensed")) %>%
   add_header_above(c(" " = 1, "Confirmations" = 2, "Deaths" = 2))
   
+```
+
+### Objective 3
+```{r ob3 - Morgan}
+# Load necessary libraries
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(cowplot)
+
+# Filter California cases and remove unwanted columns
+df_ca <- us_cases_df %>%
+  filter(Province_State == "California") %>%
+  select(-UID, -iso2, -iso3, -code3, -FIPS, -Admin2, -Country_Region, -Lat, -Long_, -Combined_Key)
+
+# Transform the data from wide to long format
+df_ca_long <- df_ca %>%
+  pivot_longer(cols = starts_with("X"), names_to = "Date", values_to = "Cases")
+
+# Convert the date to Date class and sum the cases
+df_ca_sum <- df_ca_long %>%
+  mutate(Date = as.Date(gsub("X", "", Date), format = "%m.%d.%y")) %>%
+  group_by(Date) %>%
+  summarise(Cases = sum(Cases, na.rm = TRUE))
+
+# Define dates of interest
+start_date <- as.Date("2020-03-19")
+vaccine_date <- as.Date("2021-01-29")
+delta_date <- as.Date("2021-07-04")
+omicron_date <- as.Date("2021-12-20")
+
+# Plot the data
+state_plot <- ggplot(df_ca_sum, aes(x = Date, y = Cases)) +
+  geom_line(size = 2) +
+  geom_vline(xintercept = start_date, linetype = "dashed", color = "blue", size = 1) +
+  geom_vline(xintercept = vaccine_date, linetype = "dashed", color = "blue", size = 1) +
+  geom_vline(xintercept = delta_date, linetype = "dashed", color = "red", size = 1) +
+  geom_vline(xintercept = omicron_date, linetype = "dashed", color = "red", size = 1) +
+  geom_text(aes(x = start_date, y = 10000000, label = "SAH"), vjust = -0.5) +
+  geom_text(aes(x = vaccine_date, y = 10000000, label = "EUA"), vjust = -0.5) +
+  geom_text(aes(x = delta_date, y = 10000000, label = "Delta"), vjust = -0.5) +
+  geom_text(aes(x = omicron_date, y = 10000000, label = "Omicron"), vjust = -0.5) +
+  labs(x = "", y = "Confirmed Cases",
+       title = "COVID-19 Confirmed Cases in California"
+       ) +
+  scale_x_date(
+    breaks = c(start_date, vaccine_date, delta_date, omicron_date),
+    labels = c("2020-03-19", "2021-01-29", "2021-07-04", "2021-12-20")
+  )
+
+# Filter California cases and remove unwanted columns
+df_ca <- us_cases_df %>%
+  filter(Province_State == "California") %>%
+  select(Admin2, starts_with("X"))
+
+# Transform the data from wide to long format
+df_ca_long <- df_ca %>%
+  pivot_longer(cols = starts_with("X"), names_to = "Date", values_to = "Cases")
+
+# Convert the date to Date class and sum the cases
+df_ca_sum <- df_ca_long %>%
+  mutate(Date = as.Date(gsub("X", "", Date), format = "%m.%d.%y")) %>%
+  group_by(Admin2, Date) %>%
+  summarise(Cases = sum(Cases, na.rm = TRUE))
+
+# Find the three cities with highest total cases
+top_cities <- df_ca_sum %>%
+  group_by(Admin2) %>%
+  summarise(TotalCases = sum(Cases, na.rm = TRUE)) %>%
+  top_n(3, TotalCases) %>%
+  pull(Admin2)
+
+# Filter the data for these cities
+df_top_cities <- df_ca_sum %>% filter(Admin2 %in% top_cities)
+
+# Define dates of interest
+start_date <- as.Date("2020-03-19")
+vaccine_date <- as.Date("2021-01-29")
+delta_date <- as.Date("2021-07-04")
+omicron_date <- as.Date("2021-12-20")
+
+# Plot the data
+city_plot <- ggplot(df_top_cities, aes(x = Date, y = Cases, color = Admin2)) +
+  geom_line(size = 2) +
+  geom_vline(xintercept = start_date, linetype = "dashed", color = "blue", size = 1) +
+  geom_vline(xintercept = vaccine_date, linetype = "dashed", color = "blue", size = 1) +
+  geom_vline(xintercept = delta_date, linetype = "dashed", color = "red", size = 1) +
+  geom_vline(xintercept = omicron_date, linetype = "dashed", color = "red", size = 1) +
+  scale_color_manual(values = c("green", "purple", "orange"))+
+  labs(y = "Cases",
+       title = "",
+       color = "City") +
+  theme(legend.position = "none")
+  scale_x_date(date_breaks = "1 year", 
+               date_labels = "")
+
+#combine plots using cowplot
+combined_plot <- plot_grid(state_plot, city_plot, ncol = 1, align = "v")
+
+#pull legend
+legend <- get_legend(
+  city_plot +
+    guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "right")
+)
+
+plot_grid(combined_plot, ncol = 1, align = "v")
+
 ```
 
