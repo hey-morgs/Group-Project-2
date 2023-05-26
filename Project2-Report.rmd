@@ -6,7 +6,7 @@ output: html_document
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-packages <- c("knitr", "tidyr", "dplyr", "ggplot2", "ggthemes", "stringr")
+packages <- c("knitr", "tidyr", "dplyr", "ggplot2", "ggthemes", "stringr", "kableExtra")
 install_me <- packages[!(packages %in% installed.packages()[, "Package"])]
 if (length(install_me)) install.packages(install_me)
 library(knitr)
@@ -15,6 +15,7 @@ library(dplyr)
 library(ggplot2)
 library(ggthemes)
 library(stringr)
+library(kableExtra)
 ```
 
 
@@ -63,7 +64,12 @@ top_deaths <- top_deaths %>% mutate(Rank = 1:nrow(top_deaths)) %>% select(Rank, 
 
 consolidated <- full_join(top_cases, top_deaths, by ='Rank')
 
-kable(consolidated)
+consolidated <- consolidated %>% rename("Top Cases Countries" = "Country.Region.x")
+consolidated <- consolidated %>% rename("Top Deaths Countries" = "Country.Region.y")
+
+kable(consolidated) %>%
+  kable_styling(fixed_thead = T, bootstrap_options = c("striped", "hover", "condensed")) %>%
+  add_header_above(c(" " = 1, "Confirmations" = 2, "Deaths" = 2))
   
 ```
 
