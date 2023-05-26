@@ -135,6 +135,7 @@ kable(consolidated)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+library(cowplot)
 
 # Filter California cases and remove unwanted columns
 df_ca <- us_cases_df %>%
@@ -158,8 +159,8 @@ delta_date <- as.Date("2021-07-04")
 omicron_date <- as.Date("2021-12-20")
 
 # Plot the data
-ggplot(df_ca_sum, aes(x = Date, y = Cases)) +
-  geom_line() +
+state_plot <- ggplot(df_ca_sum, aes(x = Date, y = Cases)) +
+  geom_line(size = 2) +
   geom_vline(xintercept = start_date, linetype = "dashed", color = "blue", size = 1) +
   geom_vline(xintercept = vaccine_date, linetype = "dashed", color = "blue", size = 1) +
   geom_vline(xintercept = delta_date, linetype = "dashed", color = "red", size = 1) +
@@ -174,7 +175,65 @@ ggplot(df_ca_sum, aes(x = Date, y = Cases)) +
   scale_x_date(
     breaks = c(start_date, vaccine_date, delta_date, omicron_date),
     labels = c("2020-03-19", "2021-01-29", "2021-07-04", "2021-12-20")
-  )  
+  )
+
+# Filter California cases and remove unwanted columns
+df_ca <- us_cases_df %>%
+  filter(Province_State == "California") %>%
+  select(Admin2, starts_with("X"))
+
+# Transform the data from wide to long format
+df_ca_long <- df_ca %>%
+  pivot_longer(cols = starts_with("X"), names_to = "Date", values_to = "Cases")
+
+# Convert the date to Date class and sum the cases
+df_ca_sum <- df_ca_long %>%
+  mutate(Date = as.Date(gsub("X", "", Date), format = "%m.%d.%y")) %>%
+  group_by(Admin2, Date) %>%
+  summarise(Cases = sum(Cases, na.rm = TRUE))
+
+# Find the three cities with highest total cases
+top_cities <- df_ca_sum %>%
+  group_by(Admin2) %>%
+  summarise(TotalCases = sum(Cases, na.rm = TRUE)) %>%
+  top_n(3, TotalCases) %>%
+  pull(Admin2)
+
+# Filter the data for these cities
+df_top_cities <- df_ca_sum %>% filter(Admin2 %in% top_cities)
+
+# Define dates of interest
+start_date <- as.Date("2020-03-19")
+vaccine_date <- as.Date("2021-01-29")
+delta_date <- as.Date("2021-07-04")
+omicron_date <- as.Date("2021-12-20")
+
+# Plot the data
+city_plot <- ggplot(df_top_cities, aes(x = Date, y = Cases, color = Admin2)) +
+  geom_line(size = 2) +
+  geom_vline(xintercept = start_date, linetype = "dashed", color = "blue", size = 1) +
+  geom_vline(xintercept = vaccine_date, linetype = "dashed", color = "blue", size = 1) +
+  geom_vline(xintercept = delta_date, linetype = "dashed", color = "red", size = 1) +
+  geom_vline(xintercept = omicron_date, linetype = "dashed", color = "red", size = 1) +
+  scale_color_manual(values = c("green", "purple", "orange"))+
+  labs(y = "Cases",
+       title = "",
+       color = "City") +
+  theme(legend.position = "none")
+  scale_x_date(date_breaks = "1 year", 
+               date_labels = "")
+
+#combine plots using cowplot
+combined_plot <- plot_grid(state_plot, city_plot, ncol = 1, align = "v")
+
+#pull legend
+legend <- get_legend(
+  city_plot +
+    guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "right")
+)
+
+plot_grid(combined_plot, ncol = 1, align = "v")
 
 ```
 
