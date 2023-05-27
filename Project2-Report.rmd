@@ -33,8 +33,9 @@ CSIT-165 is a conglomerate comprised of two fabricated entities: World Health Or
 Morgan is part of the WHO
 Preena is part of the USPRT
 
+### Objective 1
 
-```{r load data}
+```{r ob1 - Morgan}
 
 #load data
 global_cases <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
@@ -45,11 +46,6 @@ global_cases_df <- read.csv(global_cases, header = TRUE, na.strings = c("", " ")
 global_deaths_df <- read.csv(global_deaths, header = TRUE, na.strings = c("", " "))
 us_cases_df <- read.csv(us_cases, header = TRUE, na.strings = c("", " "))
 us_deaths_df <- read.csv(us_deaths, header = TRUE, na.strings = c("", " "))
-```
-
-### Objective 1
-
-```{r ob1 - Morgan}
 
 # Select the relevant columns for country/province, latitude, longitude, and the last date column
 cases_cols <- c("Province.State", "Country.Region", "Lat", "Long", "X3.9.23")
@@ -70,12 +66,6 @@ deaths_data <- global_deaths_df %>%
   summarise(Deaths = sum(X3.9.23, na.rm = TRUE),
             MeanLat = mean(Lat, na.rm = TRUE),
             MeanLong = mean(Long, na.rm = TRUE))
-#str(cases_data)
-#str(deaths_data)
-#any(is.na(cases_data$ConfirmedCases))
-#any(is.na(cases_data$Deaths))
-
-#print (deaths_data)
 
 # Define color palette for cases
 casesColor <- colorNumeric(
@@ -97,7 +87,8 @@ map <- leaflet() %>%
                    label = ~sprintf('%s', Country.Region),
                    popup = ~sprintf('Cases: %s', ConfirmedCases),
                    radius = 6,
-                   stroke = FALSE
+                   stroke = FALSE,
+                   fillOpacity = 0.8
                    ) %>%
   addCircleMarkers(data = deaths_data, group = "Deaths",
                    lat = ~ MeanLat,
@@ -106,7 +97,8 @@ map <- leaflet() %>%
                    label = ~sprintf('%s', Country.Region),
                    popup = ~sprintf('Deaths: %s', Deaths),
                    radius = 6,
-                   stroke = FALSE)%>%
+                   stroke = FALSE,
+                   fillOpacity = 0.8)%>%
 addLayersControl(
   overlayGroups = c("Confirmed Cases", "Deaths"),
   options = layersControlOptions(collapsed = FALSE)
