@@ -70,17 +70,21 @@ deaths_data <- global_deaths_df %>%
   summarise(Deaths = sum(X3.9.23, na.rm = TRUE),
             MeanLat = mean(Lat, na.rm = TRUE),
             MeanLong = mean(Long, na.rm = TRUE))
-str(cases_data)
-str(deaths_data)
+#str(cases_data)
+#str(deaths_data)
+#any(is.na(cases_data$ConfirmedCases))
+#any(is.na(cases_data$Deaths))
+
 #print (deaths_data)
+
 # Define color palette for cases
 casesColor <- colorNumeric(
-  palette = "Blues",
+  palette = "YlOrRd",
   domain = cases_data$ConfirmedCases
 )
 # Define color for deaths
 deathsColor <- colorNumeric(
-  palette = "Blues",
+  palette = "YlOrRd",
   domain = cases_data$Deaths
 )
 
@@ -111,7 +115,7 @@ addLayersControl(
 map
 ```
 
-=======
+### Objective 2
 
 ```{r ob2 - Preena}
 top_cases <- global_cases_df %>%
