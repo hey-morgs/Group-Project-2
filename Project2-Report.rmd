@@ -208,6 +208,10 @@ top_cities <- df_ca_sum %>%
 # Filter the data for these cities
 df_top_cities <- df_ca_sum %>% filter(Admin2 %in% top_cities)
 
+label_data <- df_top_cities %>%
+  group_by(Admin2) %>%
+  filter(Date == as.Date("2022-10-01"))
+
 # Define dates of interest
 start_date <- as.Date("2020-03-19")
 vaccine_date <- as.Date("2021-01-29")
@@ -217,6 +221,11 @@ omicron_date <- as.Date("2021-12-20")
 # Plot the data
 city_plot <- ggplot(df_top_cities, aes(x = Date, y = Cases, color = Admin2)) +
   geom_line(size = 2) +
+  geom_text(data = label_data,
+            aes(label = Admin2),
+            color = "black",
+            size = 3, 
+            check_overlap = TRUE) +
   geom_vline(xintercept = start_date, linetype = "dashed", color = "blue", size = 1) +
   geom_vline(xintercept = vaccine_date, linetype = "dashed", color = "blue", size = 1) +
   geom_vline(xintercept = delta_date, linetype = "dashed", color = "red", size = 1) +
