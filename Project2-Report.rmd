@@ -6,7 +6,7 @@ output: html_document
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-packages <- c("knitr", "tidyr", "dplyr", "ggplot2", "ggthemes", "stringr", "kableExtra")
+packages <- c("knitr", "tidyr", "dplyr", "ggplot2", "ggthemes", "stringr", "kableExtra", "leaflet", "cowplot")
 install_me <- packages[!(packages %in% installed.packages()[, "Package"])]
 if (length(install_me)) install.packages(install_me)
 library(knitr)
@@ -16,6 +16,8 @@ library(ggplot2)
 library(ggthemes)
 library(stringr)
 library(kableExtra)
+library(leaflet)
+library(cowplot)
 ```
 
 
@@ -107,7 +109,7 @@ addLayersControl(
 map
 ```
 
-=======
+### Objective 2
 
 ```{r ob2 - Preena}
 top_cases <- global_cases_df %>%
@@ -131,7 +133,8 @@ consolidated <- consolidated %>% rename("Top Deaths Countries" = "Country.Region
 
 kable(consolidated) %>%
   kable_styling(fixed_thead = T, bootstrap_options = c("striped", "hover", "condensed")) %>%
-  add_header_above(c(" " = 1, "Confirmations" = 2, "Deaths" = 2))
+  add_header_above(c(" " = 1, "Confirmations" = 2, "Deaths" = 2)) %>%
+  scroll_box(width = "900px", height = "400px")
   
 ```
 
@@ -243,3 +246,29 @@ plot_grid(combined_plot, ncol = 1, align = "v")
 
 ```
 
+### Objective 4
+```{r ob4 - Preena}
+
+deaths <- us_deaths_df %>% select(1, Population = 12, Deaths = ncol(us_deaths_df))
+
+cases <- us_cases_df %>% select(1, Cases = ncol(us_cases_df))
+
+deaths_cases_pop <- full_join(deaths, cases, by = "UID")
+deaths_cases_pop <- deaths_cases_pop %>% filter(Cases > 0, Deaths > 0, Population > 0)    
+
+dvc_plot <- ggplot(deaths_cases_pop, aes(x = Cases, y = Deaths)) +
+  geom_point(color = "darkred") +
+  scale_x_continuous(trans = 'log2')+
+  scale_y_continuous(trans = 'log2') +
+  labs(x = "Confirmation Counts", y = "Death Counts", title = "Deaths vs Confirmations")
+
+cvp_plot <- ggplot(deaths_cases_pop, aes(x = Population, y = Cases)) +
+  geom_point(color = "darkblue") +
+  scale_x_continuous(trans = 'log2')+
+  scale_y_continuous(trans = 'log2') +
+  labs(x = "Population", y = "Confirmation Counts", title = "Confirmations vs Population")
+  
+combined_plot <- plot_grid(cvp_plot, dvc_plot, nrow = 1)
+combined_plot
+
+```
