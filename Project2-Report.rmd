@@ -113,12 +113,13 @@ map
 
 ```{r ob2 - Preena}
 top_cases <- global_cases_df %>%
-  group_by(Country.Region) %>% 
-  summarize(Cases=sum(X3.9.23)) %>% 
-  arrange(desc(Cases))
+  group_by(Country.Region) %>% # groups by country
+  summarize(Cases=sum(X3.9.23)) %>% # finds total cases for each country
+  arrange(desc(Cases)) # arranges from greatest to least
 
-top_cases <- top_cases %>% mutate(Rank = 1:nrow(top_cases)) %>% select(Rank, everything())
+top_cases <- top_cases %>% mutate(Rank = 1:nrow(top_cases)) %>% select(Rank, everything()) # creates column and assigns numbers for ranks, moves to front of df
 
+# repeat for global deaths data frame
 top_deaths <- global_deaths_df %>%
   group_by(Country.Region) %>% 
   summarize(Deaths=sum(X3.9.23)) %>% 
@@ -126,14 +127,14 @@ top_deaths <- global_deaths_df %>%
 
 top_deaths <- top_deaths %>% mutate(Rank = 1:nrow(top_deaths)) %>% select(Rank, everything())
 
+# joins death and cases df by ranks
 consolidated <- full_join(top_cases, top_deaths, by ='Rank')
 
-consolidated <- consolidated %>% rename("Top Cases Countries" = "Country.Region.x")
-consolidated <- consolidated %>% rename("Top Deaths Countries" = "Country.Region.y")
+consolidated <- consolidated %>% rename("Top Cases Countries" = "Country.Region.x", "Top Deaths Countries" = "Country.Region.y")
 
 kable(consolidated) %>%
-  kable_styling(fixed_thead = T, bootstrap_options = c("striped", "hover", "condensed")) %>%
-  add_header_above(c(" " = 1, "Confirmations" = 2, "Deaths" = 2)) %>%
+  kable_styling(fixed_thead = T, bootstrap_options = c("striped", "hover", "condensed")) %>% # custom kable theme
+  add_header_above(c(" " = 1, "Confirmations" = 2, "Deaths" = 2)) %>% # groups columns with separate header
   scroll_box(width = "900px", height = "400px")
   
 ```
@@ -244,25 +245,31 @@ plot_grid(combined_plot, ncol = 1, align = "v")
 ### Objective 4
 ```{r ob4 - Preena}
 
+# create new df with only unique ID, population and current death count
 deaths <- us_deaths_df %>% select(1, Population = 12, Deaths = ncol(us_deaths_df))
 
+# create new df with only unique ID and current cases count
 cases <- us_cases_df %>% select(1, Cases = ncol(us_cases_df))
 
+# join the two dfs, based on city ID
 deaths_cases_pop <- full_join(deaths, cases, by = "UID")
-deaths_cases_pop <- deaths_cases_pop %>% filter(Cases > 0, Deaths > 0, Population > 0)    
+deaths_cases_pop <- deaths_cases_pop %>% filter(Cases > 0, Deaths > 0, Population > 0) # filter only positive bc applying log scale later
 
+# create Deaths vs Cases plot, applying log transformation
 dvc_plot <- ggplot(deaths_cases_pop, aes(x = Cases, y = Deaths)) +
   geom_point(color = "darkred") +
-  scale_x_continuous(trans = 'log2')+
+  scale_x_continuous(trans = 'log2') +
   scale_y_continuous(trans = 'log2') +
   labs(x = "Confirmation Counts", y = "Death Counts", title = "Deaths vs Confirmations")
 
+# create Cases vs Population plot, applying log transformation
 cvp_plot <- ggplot(deaths_cases_pop, aes(x = Population, y = Cases)) +
   geom_point(color = "darkblue") +
   scale_x_continuous(trans = 'log2')+
   scale_y_continuous(trans = 'log2') +
   labs(x = "Population", y = "Confirmation Counts", title = "Confirmations vs Population")
   
+# use cowplot to display both plots together
 combined_plot <- plot_grid(cvp_plot, dvc_plot, nrow = 1)
 combined_plot
 
